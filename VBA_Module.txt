@@ -1,0 +1,91 @@
+Sub GenerateSummary()
+    Dim wsData As Worksheet
+    Dim wsSummary As Worksheet
+    Dim lastRow As Long
+    Dim i As Long, j As Long
+    Dim prod As String, qty As Double, price As Double
+    Dim products() As String
+    Dim totalsQty() As Double
+    Dim totalsPrice() As Double
+    Dim prodCount As Long
+    Dim found As Boolean
+    Dim grandQty As Double, grandPrice As Double
+    
+    Set wsData = ThisWorkbook.Sheets("SalesData")
+    
+    ' Delete existing summary sheet if exists
+    On Error Resume Next
+    Application.DisplayAlerts = False
+    ThisWorkbook.Sheets("SummaryReport").Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
+    
+    Set wsSummary = ThisWorkbook.Sheets.Add
+    wsSummary.Name = "SummaryReport"
+    
+    ' Find last row
+    lastRow = wsData.Cells(wsData.Rows.Count, "A").End(xlUp).Row
+    
+    ' Initialize arrays with max possible size
+    ReDim products(1 To lastRow - 1)
+    ReDim totalsQty(1 To lastRow - 1)
+    ReDim totalsPrice(1 To lastRow - 1)
+    
+    prodCount = 0
+    
+    ' Loop through each row in SalesData
+    For i = 2 To lastRow
+        prod = wsData.Cells(i, 1).Value
+        qty = wsData.Cells(i, 2).Value
+        price = wsData.Cells(i, 3).Value
+        found = False
+        
+        ' Check if product already exists
+        For j = 1 To prodCount
+            If products(j) = prod Then
+                totalsQty(j) = totalsQty(j) + qty
+                totalsPrice(j) = totalsPrice(j) + (qty * price)
+                found = True
+                Exit For
+            End If
+        Next j
+        
+        ' If new product, add to arrays
+        If Not found Then
+            prodCount = prodCount + 1
+            products(prodCount) = prod
+            totalsQty(prodCount) = qty
+            totalsPrice(prodCount) = qty * price
+        End If
+    Next i
+    
+    ' Write summary headers
+    wsSummary.Cells(1, 1).Value = "Product"
+    wsSummary.Cells(1, 2).Value = "Total Quantity"
+    wsSummary.Cells(1, 3).Value = "Total Price"
+    
+    ' Initialize grand totals
+    grandQty = 0
+    grandPrice = 0
+    
+    ' Write summary data and calculate grand totals
+    For i = 1 To prodCount
+        wsSummary.Cells(i + 1, 1).Value = products(i)
+        wsSummary.Cells(i + 1, 2).Value = totalsQty(i)
+        wsSummary.Cells(i + 1, 3).Value = totalsPrice(i)
+        grandQty = grandQty + totalsQty(i)
+        grandPrice = grandPrice + totalsPrice(i)
+    Next i
+    
+    ' Add grand total row
+    wsSummary.Cells(prodCount + 2, 1).Value = "Grand Total"
+    wsSummary.Cells(prodCount + 2, 2).Value = grandQty
+    wsSummary.Cells(prodCount + 2, 3).Value = grandPrice
+    wsSummary.Rows(prodCount + 2).Font.Bold = True
+    
+    ' Format header and columns
+    wsSummary.Rows(1).Font.Bold = True
+    wsSummary.Columns("A:C").AutoFit
+End Sub
+
+
